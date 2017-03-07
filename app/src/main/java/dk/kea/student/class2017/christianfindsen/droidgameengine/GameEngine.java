@@ -34,9 +34,11 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     Rect dst = new Rect(); // Firekant til distination
     private Bitmap offscreenSurface;
     private TouchHandler touchHandler;
-    private List<TouchEvent> touchEventBuffer = new ArrayList<>();
     private TouchEventPool touchEventPool = new TouchEventPool();
+    private List<TouchEvent> touchEventBuffer = new ArrayList<>();
+    private List<TouchEvent> touchEventsCopied = new ArrayList<>();
     private  float[] accelerometer = new float[3];
+
 
     public abstract Screen createStartScreen();
 
@@ -135,12 +137,12 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
 
     public int getFrameBufferWidth()
     {
-        return surfaceView.getWidth();
+        return offscreenSurface.getWidth();
     }
 
     public int getFrameBufferHeight()
     {
-        return surfaceView.getHeight();
+        return offscreenSurface.getHeight();
     }
 
     public void drawBitmap(Bitmap bitmap, int x, int y)
@@ -184,6 +186,29 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         return (int)(touchHandler.getTouchY(pointer) * (float)offscreenSurface.getHeight() / (float)surfaceView.getHeight());
     }
 
+    private void fillEvents()
+    {
+        synchronized (touchEventBuffer)
+        {
+            for (int i=0; i<touchEventBuffer.size();i++)
+            {
+                touchEventsCopied.add(touchEventBuffer.get(i)); // Copy all touch events into new array
+            }
+            touchEventBuffer.clear(); // empty the eventbuffer after its been copied
+        }
+    }
+
+    public void freeEvents()
+    {
+        synchronized (touchEventsCopied)
+        {
+            for(int i=0; i<touchEventsCopied.size(); i++)
+            {
+                touchEventPool.free(touchEventsCopied.get(i));
+            }
+        }
+    }
+
     public float[] getAccelerometer()
     {
         return accelerometer;
@@ -193,7 +218,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     {
     }
 
-    //same as onTuchEvent method :)
+    //same as onTouchEvent method :)
     public void onSensorChanged(SensorEvent event)
     {
         System.arraycopy(event.values, 0, accelerometer, 0,3);
@@ -241,8 +266,10 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
                 {
                     if(!surfaceHolder.getSurface().isValid()) continue; //get out of this loop
                     Canvas canvas = surfaceHolder.lockCanvas(); //local variable
-                    //we will do all the drawing here
+                    // we will do all the drawing here
+                    fillEvents();
                     if(screen != null) screen.update(0);
+                    freeEvents();
                     src.left = 0;
                     src.top = 0;
                     src.right = offscreenSurface.getWidth() - 1; // else the last pix is out off the screen

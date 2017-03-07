@@ -37,7 +37,7 @@ public class SimpleScreen extends Screen
             }
         }
 
-        float x = game.getAccelerometer()[0];
+        float x = -game.getAccelerometer()[0];
         float y = game.getAccelerometer()[1];
         float accKonstant = 10;
         x = (x/accKonstant) * game.getFrameBufferWidth()/2 + game.getFrameBufferWidth()/2; //if no input, bob starts in the middel
