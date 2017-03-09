@@ -3,7 +3,7 @@ package dk.kea.student.class2017.christianfindsen.droidgameengine;
 import android.content.res.AssetFileDescriptor;
 import android.media.MediaPlayer;
 
-import java.io.Externalizable;
+
 import java.io.IOException;
 
 
@@ -11,34 +11,39 @@ import java.io.IOException;
  * Created by Christian on 09-03-2017.
  */
 
+
 public class Music implements MediaPlayer.OnCompletionListener
 {
-    private MediaPlayer mediaPlayer; // MediaPlayer is doing the audio playback for us
-    private boolean isPrepare;       // Is the MediaPlayer prepared and usable ?
+    private MediaPlayer mediaPlayer; //MediaPlayer is doing the audio playback
+    private boolean isPrepared;     //is the MediaPlayer prepared and usable?
 
+    //construktor
     public Music(AssetFileDescriptor assetFileDescriptor)
     {
         mediaPlayer = new MediaPlayer();
         try
         {
+            //get file
+            //from that file tell me where to start
+            //and long
             mediaPlayer.setDataSource(assetFileDescriptor.getFileDescriptor(),
                     assetFileDescriptor.getStartOffset(),
                     assetFileDescriptor.getLength());
             mediaPlayer.prepare();
+            isPrepared = true;
             mediaPlayer.setOnCompletionListener(this);
+
         }
-        catch (IOException e)
+        catch (Exception e)
         {
-            throw new RuntimeException("Could not load music! *********");
+            throw new RuntimeException(" Could not load music! ****************************");
         }
     }
 
     public void dispose()
     {
-        if (mediaPlayer.isPlaying())
-            mediaPlayer.stop();
-            mediaPlayer.release();
-
+        if(mediaPlayer.isPlaying()) mediaPlayer.stop();
+        mediaPlayer.release();
     }
 
     public boolean isLooping()
@@ -51,38 +56,36 @@ public class Music implements MediaPlayer.OnCompletionListener
         return mediaPlayer.isPlaying();
     }
 
+    // if not playing, its stopped
     public boolean isStopped()
     {
-        return !isPrepare;
+        return !isPrepared;
     }
 
     public void pause()
     {
         mediaPlayer.pause();
-//        if (mediaPlayer.isPlaying())
-//            mediaPlayer.pause();
+        //if(mediaPlayer.isPlaying()) mediaPlayer.pause(); //- maybe nescessary?
     }
 
     public void play()
     {
-        if(mediaPlayer.isPlaying()) return;
+        if (mediaPlayer.isPlaying()) return;
         try
         {
             synchronized (this)
             {
-                if(!isPrepare)
-                    mediaPlayer.prepare();
+                if(!isPrepared) mediaPlayer.prepare();
                 mediaPlayer.start();
             }
-
         }
         catch (IllegalStateException e)
         {
             e.printStackTrace();
         }
-        catch (IOException e)
+        catch (IOException e1)
         {
-            e.printStackTrace();
+            e1.printStackTrace();
         }
     }
 
@@ -93,27 +96,25 @@ public class Music implements MediaPlayer.OnCompletionListener
 
     public void setVolume(float volume)
     {
-        mediaPlayer.setVolume(volume,volume);
+        mediaPlayer.setVolume(volume, volume); //works like mono
     }
 
     public void stop()
     {
         synchronized (this)
         {
-            if(!isPrepare) return;
+            if(!isPrepared) return;
             mediaPlayer.stop();
-            isPrepare = false;
+            isPrepared = false;
         }
     }
-
 
     @Override
     public void onCompletion(MediaPlayer mp)
     {
         synchronized (this)
         {
-            isPrepare = false;
+            isPrepared = false;
         }
-
     }
 }

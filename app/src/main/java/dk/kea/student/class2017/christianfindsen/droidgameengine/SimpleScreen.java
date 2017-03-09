@@ -36,6 +36,7 @@ public class SimpleScreen extends Screen
     public void update(float deltaTime)
     {
         Log.d("SimpleScreen","******* fps: " + game.getFrameRate());
+
         game.clearFrameBuffer(clearColor);
 
         for (int pointer = 0; pointer < 5; pointer++)

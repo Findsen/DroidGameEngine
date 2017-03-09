@@ -11,6 +11,7 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
+import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
@@ -38,13 +39,11 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     private Bitmap offscreenSurface;
     private TouchHandler touchHandler;
     private TouchEventPool touchEventPool = new TouchEventPool();
-    private List<TouchEvent> touchEventBuffer = new ArrayList<>();
-    private List<TouchEvent> touchEventsCopied = new ArrayList<>();
+    private List<TouchEvent> touchEventBuffer = new ArrayList<>();        // the main thread add to
+    private List<TouchEvent> touchEventsCopied = new ArrayList<>();      // lock the touchevenPool the copy of the list to toucheventsCopied and then unlock the touchEventPool list again - repeat many times
     private  float[] accelerometer = new float[3];
     private SoundPool soundPool;
     private int framesPerSecond = 0;
-
-
 
     public abstract Screen createStartScreen();
 
@@ -73,16 +72,15 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
             Sensor accSensor = sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).get(0); //only takes the first once and dont care if there is more
             sensorManager.registerListener(this, accSensor,SensorManager.SENSOR_DELAY_GAME); //game is faster then faster
         }
-
-        setVolumeControlStream(AudioManager.STREAM_MUSIC); // Adding where we want to grab the volume from.
-        this.soundPool = new SoundPool(20,AudioManager.STREAM_MUSIC, 0);
-
-        // Supported from Android API 21 and higher
-        // SoundPool.Builder builder = new SoundPool.Builder();
+        setVolumeControlStream(AudioManager.STREAM_MUSIC);
+        soundPool = new SoundPool(20, AudioManager.STREAM_MUSIC, 0); //how many sound object you want to have and the divice is "saving" the ram for it
+        // supported from android API 21 and higher
+        // SoundPool.Builder builder = new SoundPool().Builder();
         // builder.setMaxStreams(20);
-        // soundPool = builder.build();
-
+        //soundPool = build.Build();
         screen = createStartScreen();
+
+
     }
 
     //change the screen
@@ -127,19 +125,24 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
 
     }
 
+
+    //tries to load a soundfile from file
     public Sound loadSound(String fileName)
     {
         try
         {
             AssetFileDescriptor assetFileDescriptor = getAssets().openFd(fileName);
-            int soundId = soundPool.load(assetFileDescriptor,0);
-            return new Sound(soundPool, soundId);
+            if(assetFileDescriptor == null)
+            {
+                throw new RuntimeException("************* soundPool is null from loadsound ********************");
+            }
+            int soundId = soundPool.load(assetFileDescriptor, 0);
+            return new Sound(soundPool,soundId);
         }
         catch (IOException e)
         {
-            throw new RuntimeException("Could not load sound file: "+ fileName + "**********") ;
+            throw new RuntimeException("Could not load sound file: " + fileName + "**************");
         }
-
     }
 
     public Music loadMusic(String fileName)
@@ -147,13 +150,12 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         try
         {
             AssetFileDescriptor assetFileDescriptor = getAssets().openFd(fileName);
-            return new Music(assetFileDescriptor);
+            return  new Music(assetFileDescriptor);
         }
         catch (IOException e)
         {
-            throw new RuntimeException("Could not load music file: " + fileName + "**********");
+            throw new RuntimeException("Coould not load music file: " + fileName + "*****************************");
         }
-
     }
 
 
@@ -225,19 +227,19 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     {
         synchronized (touchEventBuffer)
         {
-            for (int i=0; i<touchEventBuffer.size();i++)
+            for(int i = 0; i<touchEventBuffer.size(); i++)
             {
-                touchEventsCopied.add(touchEventBuffer.get(i)); // Copy all touch events into new array
+                touchEventsCopied.add(touchEventBuffer.get(i)); //copy all touch events
             }
-            touchEventBuffer.clear(); // empty the eventbuffer after its been copied
+            touchEventBuffer.clear(); //empty the toucheventbuffer
         }
     }
 
-    public void freeEvents()
+    private void freeEvents()
     {
         synchronized (touchEventsCopied)
         {
-            for(int i=0; i<touchEventsCopied.size(); i++)
+            for(int i = 0; i< touchEventsCopied.size(); i++)
             {
                 touchEventPool.free(touchEventsCopied.get(i));
             }
@@ -253,7 +255,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     {
     }
 
-    //same as onTouchEvent method :)
+    //same as onTuchEvent method :)
     public void onSensorChanged(SensorEvent event)
     {
         System.arraycopy(event.values, 0, accelerometer, 0,3);
@@ -261,8 +263,8 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
 
     public void run()
     {
-        int frames = 0;
-        long startTime = System.nanoTime();
+        int frames = 0; //count the frames
+        long startTime = System.nanoTime(); //ask time from system in nanosecound
         while(true) //makes a loop forever
         {
             synchronized (stateChanges)
@@ -303,13 +305,13 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
                 {
                     if(!surfaceHolder.getSurface().isValid()) continue; //get out of this loop
                     Canvas canvas = surfaceHolder.lockCanvas(); //local variable
-                    // we will do all the drawing here
                     fillEvents();
+                    //we will do all the drawing here
                     if(screen != null) screen.update(0);
                     freeEvents();
                     src.left = 0;
                     src.top = 0;
-                    src.right = offscreenSurface.getWidth() - 1; // else the last pix is out off the screen
+                    src.right = offscreenSurface.getWidth() - 1; // else the last pixel is out off the screen
                     src.bottom = offscreenSurface.getHeight() - 1;
                     dst.left = 0;
                     dst.top = 0;
@@ -320,7 +322,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
                     canvas = null;
                     //timing test
                     frames++;
-                    if ((System.nanoTime() - startTime) > 1_000_000_000)
+                    if (System.nanoTime() - startTime >1000000000) //1000000000 is a secound (9,0'er)
                     {
                         framesPerSecond = frames;
                         frames = 0;
