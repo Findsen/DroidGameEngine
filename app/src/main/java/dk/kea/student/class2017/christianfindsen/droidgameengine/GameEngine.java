@@ -11,7 +11,6 @@ import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
-import android.media.AudioAttributes;
 import android.media.AudioManager;
 import android.media.SoundPool;
 import android.os.Bundle;
@@ -91,7 +90,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     }
 
     //open files that turns into bits (jpeg, png files osv)
-    public Bitmap loaderBitmap(String fileName)
+    public Bitmap loadBitmap(String fileName)
     {
         InputStream in = null;
         Bitmap bitmap = null;
@@ -264,7 +263,8 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     public void run()
     {
         int frames = 0; //count the frames
-        long startTime = System.nanoTime(); //ask time from system in nanosecound
+        long lastTime = System.nanoTime(); //ask time from system in nanosecound
+        long currTime = lastTime;
         while(true) //makes a loop forever
         {
             synchronized (stateChanges)
@@ -307,7 +307,9 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
                     Canvas canvas = surfaceHolder.lockCanvas(); //local variable
                     fillEvents();
                     //we will do all the drawing here
-                    if(screen != null) screen.update(0);
+                    currTime = System.nanoTime();
+                    if(screen != null) screen.update((currTime - lastTime)/1000000000.0f); //knows in secound
+                    lastTime = currTime;
                     freeEvents();
                     src.left = 0;
                     src.top = 0;
@@ -320,14 +322,6 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
                     canvas.drawBitmap(offscreenSurface, src, dst, null);
                     surfaceHolder.unlockCanvasAndPost(canvas); //move it from VRAM(video ram) to screen..  takes everything you have in videoram and shows it
                     canvas = null;
-                    //timing test
-                    frames++;
-                    if (System.nanoTime() - startTime >1000000000) //1000000000 is a secound (9,0'er)
-                    {
-                        framesPerSecond = frames;
-                        frames = 0;
-                        startTime = System.nanoTime();
-                    }
                 }
             }
         }

@@ -8,35 +8,30 @@ import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.util.Log;
 
-
 public class SimpleScreen extends Screen
 {
-    int x = 0;
-    int y = 0;
+    float x = 0;
+    float y = 0;
     Bitmap bitmap;
     int clearColor = Color.BLUE;
     Sound sound;
     Music music;
 
 
-
     //construktor
     public SimpleScreen(GameEngine game)
     {
         super(game);
-        bitmap = game.loaderBitmap("bob.png");
+        bitmap = game.loadBitmap("bob.png");
         sound = game.loadSound("blocksplosion.wav");
         music = game.loadMusic("music.ogg");
-        music.setLooping(true);
+        music.setLooping(true); // never ends
         music.play();
-
     }
 
     @Override
     public void update(float deltaTime)
     {
-        Log.d("SimpleScreen","******* fps: " + game.getFrameRate());
-
         game.clearFrameBuffer(clearColor);
 
         for (int pointer = 0; pointer < 5; pointer++)
@@ -45,8 +40,8 @@ public class SimpleScreen extends Screen
             {
                 Log.d("SimpleScreen: ", " Yessssssss, we have a touch down!!!!!" );
                 game.drawBitmap(bitmap,game.getTouchX(pointer),game.getTouchY(pointer));
-//                sound.play(1);
-                if(music.isPlaying())
+                //sound.play(1); // goes from 0-1 (1 is max)
+                if (music.isPlaying())
                 {
                     music.pause();
                 }
@@ -55,16 +50,21 @@ public class SimpleScreen extends Screen
                     music.play();
                 }
             }
-
         }
 
+        /*
         float x = -game.getAccelerometer()[0];
         float y = game.getAccelerometer()[1];
         float accKonstant = 10;
-        x = (x/accKonstant) * game.getFrameBufferWidth()/2 + game.getFrameBufferWidth()/2; //if no input, bob starts in the middel
+        x = (x/accKonstant) * game.getFrameBufferWidth()/2 + game.getFrameBufferWidth()/2; //if no input, bob starts in the middel when phone is laying down at table
         y = (y/accKonstant) * game.getFrameBufferHeight()/2 + game.getFrameBufferHeight()/2;
-
         game.drawBitmap(bitmap,(int)(x-(float)bitmap.getWidth()/2), (int) (y-(float)bitmap.getHeight()/2));
+        */
+
+        //movement over the screen
+        x = x + 150 * deltaTime; //150 = speed, deltatime = hardware
+        if (x >320) x = 0;
+        game.drawBitmap(bitmap,(int)x,50);
 
     }
 
@@ -77,8 +77,7 @@ public class SimpleScreen extends Screen
     @Override
     public void resume()
     {
-        if (!music.isPlaying())
-            music.play();
+        if(!music.isPlaying()) music.play();
     }
 
     @Override
