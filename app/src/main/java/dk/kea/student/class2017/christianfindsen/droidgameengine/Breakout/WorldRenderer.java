@@ -14,6 +14,10 @@ public class WorldRenderer
     World world;
     Bitmap ballImage;
     Bitmap paddleImage;
+    Bitmap blocksImage;
+    int loopSize = 0;
+    Block block = null;
+
 
 
     //contruktor
@@ -23,6 +27,7 @@ public class WorldRenderer
         this.world = world;
         ballImage = game.loadBitmap("ball.png");
         paddleImage = game.loadBitmap("paddle.png");
+        blocksImage = game.loadBitmap("blocks.png");
     }
 
     //draw the object
@@ -30,5 +35,13 @@ public class WorldRenderer
     {
         game.drawBitmap(ballImage, (int)world.ball.x, (int)world.ball.y);
         game.drawBitmap(paddleImage, (int)world.paddle.x, (int)world.paddle.y);
+
+        loopSize = world.blocks.size();
+        for( int i=0; i < world.blocks.size(); i++)
+        {
+            block = world.blocks.get(i);
+            game.drawBitmap(blocksImage, (int)block.x, (int) block.y,
+                    0, (int)(block.type * Block.HEIGHT),(int)Block.WIDTH, (int)Block.HEIGHT);
+        }
     }
 }

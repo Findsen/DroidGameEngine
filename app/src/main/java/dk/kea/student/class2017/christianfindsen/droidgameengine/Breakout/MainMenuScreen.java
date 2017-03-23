@@ -45,7 +45,7 @@ public class MainMenuScreen extends Screen
 
         // make the insertcoin to blink on the screen
         passedTime += deltaTime;
-        if((passedTime - (int) passedTime) > 0.5f)
+        if((passedTime - (int)passedTime) > 0.5f)
         {
             game.drawBitmap(insertCoin, 160 - insertCoin.getWidth()/2, 320);
         }
