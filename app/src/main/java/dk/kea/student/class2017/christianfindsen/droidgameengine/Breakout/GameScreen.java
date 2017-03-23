@@ -21,7 +21,7 @@ public class GameScreen extends Screen
     Bitmap resume;
     Bitmap gameOver;
     World world;
-    WorldRender renderer;
+    WorldRenderer renderer;
 
 
     //contruktor
@@ -32,7 +32,7 @@ public class GameScreen extends Screen
         resume = game.loadBitmap("resume.png");
         gameOver = game.loadBitmap("gameover.png");
         world = new World();
-        renderer = new WorldRender(game, world);
+        renderer = new WorldRenderer(game, world);
     }
 
     @Override
@@ -47,7 +47,7 @@ public class GameScreen extends Screen
         //if game over, go back to the mainMenu
         if (state ==State.GameOver && game.isTouchDown(0))
         {
-            game.setScreen(new MainMenuScreen(game));
+            game.setScreen(new MainMenuScreen(game)); //set the screen to mainMenu
             return;
         }
 
@@ -60,8 +60,13 @@ public class GameScreen extends Screen
 
         game.drawBitmap(background, 0, 0); //setting the background to the screen
 
-        if(state == State.Running) world.update(deltaTime);
-        renderer.render();
+        if(state == State.Running)
+        {
+            world.update(deltaTime, game.getAccelerometer()[0]);
+            renderer.render();
+        }
+
+        if (world.gameOver) state = State.GameOver;
 
         //if paused, draw the Resume.png in the middel of the screen
         if (state == State.Paused)
@@ -74,7 +79,6 @@ public class GameScreen extends Screen
         {
             game.drawBitmap(gameOver, 160 - gameOver.getWidth()/2, 240 - gameOver.getHeight()/2);
         }
-
 
     }
 
