@@ -52,7 +52,7 @@ public class GameScreen extends Screen
         }
 
         //if the game is running and has a touch down at the corner
-        if (state == State.Running && game.isTouchDown(0) && game.getTouchX(0) > 320 -40 && game.getTouchY(0) < 40)
+        if (state == State.Running && game.isTouchDown(0) && game.getTouchX(0) > (320 -40) && game.getTouchY(0) < 40)
         {
             //call the pause method
             pause();
@@ -63,10 +63,9 @@ public class GameScreen extends Screen
         if(state == State.Running)
         {
             world.update(deltaTime, game.getAccelerometer()[0]);
-
         }
-            renderer.render(); // Making the game still show if its on pause
 
+        renderer.render(); //draw the objects on the screen
         if (world.gameOver) state = State.GameOver;
 
         //if paused, draw the Resume.png in the middel of the screen

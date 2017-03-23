@@ -36,10 +36,10 @@ public class WorldRenderer
         game.drawBitmap(ballImage, (int)world.ball.x, (int)world.ball.y);
         game.drawBitmap(paddleImage, (int)world.paddle.x, (int)world.paddle.y);
 
-        loopSize = world.blocks.size();
-        for( int i=0; i < world.blocks.size(); i++)
+        loopSize = world.blockArrayList.size();
+        for( int i=0; i <loopSize; i++)
         {
-            block = world.blocks.get(i);
+            block = world.blockArrayList.get(i);
             game.drawBitmap(blocksImage, (int)block.x, (int) block.y,
                     0, (int)(block.type * Block.HEIGHT),(int)Block.WIDTH, (int)Block.HEIGHT);
         }
