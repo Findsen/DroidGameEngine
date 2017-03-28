@@ -34,6 +34,11 @@ public class World
     //updates the ball
     public void update(float deltaTime, float accelX)
     {
+
+        if (blockArrayList.size() == 0)
+        {
+            generateBlocks();
+        }
         ball.x = ball.x + ball.vx * deltaTime;
         ball.y = ball.y + ball.vy * deltaTime;
 
@@ -44,10 +49,10 @@ public class World
             ball.x = MIN_X; // the user doesnt see it goes out of the screen
         }
 
-        if (ball.x > MAX_X - ball.WIDTH)
+        if (ball.x > MAX_X - Ball.WIDTH)
         {
             ball.vx = -ball.vx;
-            ball.x = MAX_X - ball.WIDTH;
+            ball.x = MAX_X - Ball.WIDTH;
         }
 
         if (ball.y < MIN_Y)
@@ -56,8 +61,8 @@ public class World
             ball.y = MIN_Y;
         }
 
-        //buttom
-        if (ball.y > MAX_Y - ball.HEIGHT)
+        //Did the
+        if (ball.y > MAX_Y - Ball.HEIGHT)
         {
             gameOver = true;
             return;
@@ -81,7 +86,7 @@ public class World
         if (paddle.x + Paddle.WIDTH > MAX_X) paddle.x = MAX_X - Paddle.WIDTH;
 
         collideBallPaddle();
-        collideBallBlocks();
+        collideBallBlocks(deltaTime);
     }
 
     private void generateBlocks()
@@ -121,7 +126,7 @@ public class World
         return false;
     }
 
-    private void collideBallBlocks()
+    private void collideBallBlocks(float deltaTime)
     {
         for (int i = 0; i < blockArrayList.size(); i++)
         {
@@ -131,7 +136,70 @@ public class World
             {
                 blockArrayList.remove(i);
                 i = i-1;
+                float oldvx = ball.vx;
+                float oldvy = ball.vy;
+                reflectBall(ball, block);
+                ball.x = ball.x - oldvx * deltaTime * 1.01f;
+                ball.y = ball.y - oldvy * deltaTime * 1.01f;
             }
         }
+    }
+
+
+    private void reflectBall(Ball ball, Block block)
+    {
+        if (collideRects(ball.x, ball.y, Ball.WIDTH, Ball.WIDTH,
+                block.x, block.y, 1, 1)) //check the top left corner of the block
+        {
+            if (ball.vx > 0) ball.vx = -ball.vx;
+            if (ball.vy > 0) ball.vy = -ball.vy;
+            return;
+        }
+        if (collideRects(ball.x, ball.y,Ball.WIDTH,Ball.HEIGHT,
+                block.x + Block.WIDTH, block.y,1,1))  //Check the top right corner of the block
+        {
+            if (ball.vx < 0) ball.vx = -ball.vx;
+            if (ball.vy > 0) ball.vy = -ball.vy;
+            return;
+        }
+        if (collideRects(ball.x, ball.y, Ball.WIDTH,Ball.HEIGHT,
+                        block.x,block.y+Block.HEIGHT,1,1)) //Check the bottom left corner of the block
+        {
+            if (ball.vx > 0) ball.vx = -ball.vx;
+            if (ball.vy < 0) ball.vy = -ball.vy;
+            return;
+        }
+        if (collideRects(ball.x, ball.y, Ball.WIDTH, Ball.HEIGHT,
+                block.x + Block.WIDTH, block.y + Block.HEIGHT,1,1)) // Check the right bottom corner of the block
+        {
+            if (ball.vx < 0) ball.vx = -ball.vx;
+            if (ball.vy < 0) ball.vy = -ball.vy;
+            return;
+        }
+        if (collideRects(ball.x, ball.y, Ball.WIDTH, Ball.HEIGHT,
+                block.x, block.y, Block.WIDTH, 1)) //check the top egde of the block
+        {
+            if (ball.vy > 0) ball.vy = -ball.vy; // should not be possible to get here from negative vy, so no if() is needed
+            return;
+        }
+        if (collideRects(ball.x, ball.y, Ball.WIDTH, Ball.HEIGHT,
+                block.x, block.y + Block.HEIGHT, Block.WIDTH,1)) // Check the bottom egde of the block
+        {
+            ball.vy = -ball.vy;
+            return;
+        }
+        if (collideRects(ball.x, ball.y, Ball.WIDTH, Ball.HEIGHT,
+                block.x, block.y,1,Block.HEIGHT))// check the left egde of the corner
+        {
+            ball.vx = -ball.vx;
+            return;
+        }
+        if (collideRects(ball.x, ball.y, Ball.WIDTH, Ball.HEIGHT,
+                block.x + Block.WIDTH, block.y, 1, Block.HEIGHT)) //Check the right egde of the block
+        {
+            ball.vx = - ball.vx;
+            return;
+        }
+
     }
 }

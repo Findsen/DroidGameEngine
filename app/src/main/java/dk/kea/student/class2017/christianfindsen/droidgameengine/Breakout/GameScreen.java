@@ -1,9 +1,13 @@
 package dk.kea.student.class2017.christianfindsen.droidgameengine.Breakout;
 
 import android.graphics.Bitmap;
+import android.hardware.camera2.params.TonemapCurve;
+
+import java.util.List;
 
 import dk.kea.student.class2017.christianfindsen.droidgameengine.Screen;
 import dk.kea.student.class2017.christianfindsen.droidgameengine.GameEngine;
+import dk.kea.student.class2017.christianfindsen.droidgameengine.TouchEvent;
 
 /**
  * Created by Christian Findsen on 20-03-2017.
@@ -43,6 +47,18 @@ public class GameScreen extends Screen
         {
             state = State.Running;
         }
+        if (state == State.GameOver && game.isTouchDown(0))
+        {
+            List<TouchEvent> events = game.getTouchEvents();
+            for (int i=0; i < events.size(); i++)
+            {
+                if (events.get(i).type == TouchEvent.TouchEventType.Up)
+                {
+                    game.setScreen(new MainMenuScreen(game));
+                    return;
+                }
+            }
+        }// End of gameover check
 
         //if game over, go back to the mainMenu
         if (state ==State.GameOver && game.isTouchDown(0))
