@@ -1,9 +1,15 @@
 package dk.kea.student.class2017.christianfindsen.droidgameengine.Breakout;
 
 import android.graphics.Bitmap;
+import android.graphics.Color;
+import android.graphics.Typeface;
+
+import java.util.List;
 
 import dk.kea.student.class2017.christianfindsen.droidgameengine.Screen;
 import dk.kea.student.class2017.christianfindsen.droidgameengine.GameEngine;
+import dk.kea.student.class2017.christianfindsen.droidgameengine.Sound;
+import dk.kea.student.class2017.christianfindsen.droidgameengine.TouchEvent;
 
 /**
  * Created by Christian Findsen on 20-03-2017.
@@ -20,6 +26,11 @@ public class GameScreen extends Screen
     Bitmap background;
     Bitmap resume;
     Bitmap gameOver;
+    Typeface font;
+    Sound bounceSound;
+    Sound blockSound;
+    Sound gameOverSound;                                                                            //comes later
+    CollisionListener colisionListener;
     World world;
     WorldRenderer renderer;
 
@@ -31,8 +42,14 @@ public class GameScreen extends Screen
         background = game.loadBitmap("background.png");
         resume = game.loadBitmap("resume.png");
         gameOver = game.loadBitmap("gameover.png");
-        world = new World(game);
+        font = game.loadFont("font.ttf");
+        bounceSound = game.loadSound("bounce.wav");
+        blockSound = game.loadSound("blocksplosion.wav");
+        gameOverSound = game.loadSound("gameover.wav");
+        colisionListener = new MyCollisionListener(bounceSound,bounceSound,blockSound,gameOverSound);
+        world = new World(game,colisionListener);
         renderer = new WorldRenderer(game, world);
+        game.music.play();
     }
 
     @Override
@@ -42,13 +59,21 @@ public class GameScreen extends Screen
         if(state ==  State.Paused && game.isTouchDown(0))
         {
             state = State.Running;
+            resume();
         }
 
         //if game over, go back to the mainMenu
-        if (state ==State.GameOver && game.isTouchDown(0))
+        if (state ==State.GameOver)
         {
-            game.setScreen(new MainMenuScreen(game)); //set the screen to mainMenu
-            return;
+            List<TouchEvent> events = game.getTouchEvents();
+            for (int i = 0; i < events.size(); i++)
+            {
+                if (events.get(i).type == TouchEvent.TouchEventType.Up)
+                {
+                    game.setScreen(new MainMenuScreen(game));                                       //set the screen to mainMenu
+                    return;
+                }
+            }
         }
 
         //if the game is running and has a touch down at the corner
@@ -58,14 +83,15 @@ public class GameScreen extends Screen
             pause();
         }
 
-        game.drawBitmap(background, 0, 0); //setting the background to the screen
+        game.drawBitmap(background, 0, 0);                                                          //setting the background to the screen
 
         if(state == State.Running)
         {
             world.update(deltaTime, game.getAccelerometer()[0]);
         }
+        game.drawText(font,"Score: " + Integer.toString(world.points), 27, 11, Color.GREEN,12);
 
-        renderer.render(); //draw the objects on the screen
+        renderer.render();                                                                          //draw the objects on the screen
         if (world.gameOver) state = State.GameOver;
 
         //if paused, draw the Resume.png in the middel of the screen
@@ -86,12 +112,13 @@ public class GameScreen extends Screen
     public void pause()
     {
         if(state == State.Running ) state = State.Paused;
+        game.music.pause();
     }
 
     @Override
     public void resume()
     {
-
+        game.music.play();
     }
 
     @Override

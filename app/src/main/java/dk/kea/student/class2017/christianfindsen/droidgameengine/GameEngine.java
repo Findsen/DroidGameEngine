@@ -6,7 +6,9 @@ import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Rect;
+import android.graphics.Typeface;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -29,50 +31,52 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     private Thread mainLoopThread;
     private State state = State.Paused;
     private List<State> stateChanges = new ArrayList<>();
-    private SurfaceView surfaceView; //updates now!
+    private SurfaceView surfaceView;                                                                //updates now!
     private SurfaceHolder surfaceHolder;
     private Screen screen;
     private Canvas canvas = null;
-    Rect src = new Rect(); //Firekant til kilden
-    Rect dst = new Rect(); // Firekant til distination
+    Rect src = new Rect();                                                                          //Firekant til kilden
+    Rect dst = new Rect();                                                                          // Firekant til distination
     private Bitmap offscreenSurface;
     private TouchHandler touchHandler;
     private TouchEventPool touchEventPool = new TouchEventPool();
-    private List<TouchEvent> touchEventBuffer = new ArrayList<>();        // the main thread add to
-    private List<TouchEvent> touchEventsCopied = new ArrayList<>();      // lock the touchevenPool the copy of the list to toucheventsCopied and then unlock the touchEventPool list again - repeat many times
+    private List<TouchEvent> touchEventBuffer = new ArrayList<>();                                  // the main thread add to
+    private List<TouchEvent> touchEventsCopied = new ArrayList<>();                                 // lock the touchevenPool the copy of the list to toucheventsCopied and then unlock the touchEventPool list again - repeat many times
     private  float[] accelerometer = new float[3];
     private SoundPool soundPool;
     private int framesPerSecond = 0;
+    private Paint paint = new Paint();
+    public Music music;
 
     public abstract Screen createStartScreen();
 
-    public void onCreate(Bundle savedInstance)      // call when the system is started
+    public void onCreate(Bundle savedInstance)                                                      // call when the system is started
     {
         super.onCreate(savedInstance);
-        requestWindowFeature(Window.FEATURE_NO_TITLE); // doesnt show any title
+        requestWindowFeature(Window.FEATURE_NO_TITLE);                                              // doesnt show any title
         this.getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN |
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON); //flags is a byte, keep in fullscreen and doesnt dim the screen down to save power
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);                                    //flags is a byte, keep in fullscreen and doesnt dim the screen down to save power
         surfaceView = new SurfaceView(this);
         setContentView(surfaceView);
         surfaceHolder = surfaceView.getHolder();
 
         if(surfaceView.getWidth() > surfaceView.getHeight())
         {
-            setOffscreenSurface(480,320); //vandret screen
+            setOffscreenSurface(480,320);                                                           //vandret screen
         }
         else
         {
-            setOffscreenSurface(320,480); //lodret screen
+            setOffscreenSurface(320,480);                                                           //lodret screen
         }
         touchHandler = new MultiTouchHandler(surfaceView,touchEventBuffer,touchEventPool);
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size() != 0); //checks if the device has this type of Hardware
+        if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size() != 0);                    //checks if the device has this type of Hardware
         {
-            Sensor accSensor = sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).get(0); //only takes the first once and dont care if there is more
-            sensorManager.registerListener(this, accSensor,SensorManager.SENSOR_DELAY_GAME); //game is faster then faster
+            Sensor accSensor = sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).get(0);       //only takes the first once and dont care if there is more
+            sensorManager.registerListener(this, accSensor,SensorManager.SENSOR_DELAY_GAME);        //game is faster then faster
         }
         setVolumeControlStream(AudioManager.STREAM_MUSIC);
-        soundPool = new SoundPool(20, AudioManager.STREAM_MUSIC, 0); //how many sound object you want to have and the divice is "saving" the ram for it
+        soundPool = new SoundPool(20, AudioManager.STREAM_MUSIC, 0);                                //how many sound object you want to have and the divice is "saving" the ram for it
         // supported from android API 21 and higher
         // SoundPool.Builder builder = new SoundPool().Builder();
         // builder.setMaxStreams(20);
@@ -168,7 +172,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     {
         if(offscreenSurface != null) offscreenSurface.recycle();
         offscreenSurface = Bitmap.createBitmap(with, height, Bitmap.Config.RGB_565);
-        canvas = new Canvas(offscreenSurface); //drawing object
+        canvas = new Canvas(offscreenSurface);                                                      //drawing object
     }
 
     public int getFrameBufferWidth()
@@ -212,6 +216,11 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         return touchHandler.isTouchDown(pointer);
     }
 
+    public List<TouchEvent> getTouchEvents()
+    {
+        return touchEventsCopied;
+    }
+
     public int getTouchX(int pointer)
     {
         return (int)(touchHandler.getTouchX(pointer) * (float) offscreenSurface.getWidth() /  (float)surfaceView.getWidth()); //   x / FysW * LogicW -- ex: 300/100 *320
@@ -228,9 +237,9 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         {
             for(int i = 0; i<touchEventBuffer.size(); i++)
             {
-                touchEventsCopied.add(touchEventBuffer.get(i)); //copy all touch events
+                touchEventsCopied.add(touchEventBuffer.get(i));                                     //copy all touch events
             }
-            touchEventBuffer.clear(); //empty the toucheventbuffer
+            touchEventBuffer.clear();                                                               //empty the toucheventbuffer
         }
     }
 
@@ -242,6 +251,7 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
             {
                 touchEventPool.free(touchEventsCopied.get(i));
             }
+            touchEventsCopied.clear();                                                              //empty the list of events
         }
     }
 
@@ -260,12 +270,30 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
         System.arraycopy(event.values, 0, accelerometer, 0,3);
     }
 
+    public Typeface loadFont(String fileName)
+    {
+        Typeface font = Typeface.createFromAsset(getAssets(), fileName);
+        if (font == null)
+        {
+            throw  new RuntimeException("Could not load fonts from file: " + fileName);
+        }
+        return font;
+    }
+
+    public void drawText(Typeface font, String text, int x, int y, int color, int size)
+    {
+        paint.setTypeface(font);
+        paint.setTextSize(size);
+        paint.setColor(color);
+        canvas.drawText(text, x, y + size, paint);
+    }
+
     public void run()
     {
-        int frames = 0; //count the frames
-        long lastTime = System.nanoTime(); //ask time from system in nanosecound
+        int frames = 0;                                                                             //count the frames
+        long lastTime = System.nanoTime();                                                          //ask time from system in nanosecound
         long currTime = lastTime;
-        while(true) //makes a loop forever
+        while(true)                                                                                 //makes a loop forever
         {
             synchronized (stateChanges)
             {
@@ -303,24 +331,24 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
                 stateChanges.clear();
                 if( state == State.Running)
                 {
-                    if(!surfaceHolder.getSurface().isValid()) continue; //get out of this loop
-                    Canvas canvas = surfaceHolder.lockCanvas(); //local variable
+                    if(!surfaceHolder.getSurface().isValid()) continue;                             //get out of this loop
+                    Canvas canvas = surfaceHolder.lockCanvas();                                     //local variable
                     fillEvents();
                     //we will do all the drawing here
                     currTime = System.nanoTime();
-                    if(screen != null) screen.update((currTime - lastTime)/1000000000.0f); //knows in secound
+                    if(screen != null) screen.update((currTime - lastTime)/1000000000.0f);          //knows in secound
                     lastTime = currTime;
                     freeEvents();
                     src.left = 0;
                     src.top = 0;
-                    src.right = offscreenSurface.getWidth() - 1; // else the last pixel is out off the screen
+                    src.right = offscreenSurface.getWidth() - 1;                                    // else the last pixel is out off the screen
                     src.bottom = offscreenSurface.getHeight() - 1;
                     dst.left = 0;
                     dst.top = 0;
                     dst.right = surfaceView.getWidth() - 1;
                     dst.bottom = surfaceView.getHeight() - 1;
                     canvas.drawBitmap(offscreenSurface, src, dst, null);
-                    surfaceHolder.unlockCanvasAndPost(canvas); //move it from VRAM(video ram) to screen..  takes everything you have in videoram and shows it
+                    surfaceHolder.unlockCanvasAndPost(canvas);                                      //move it from VRAM(video ram) to screen..  takes everything you have in videoram and shows it
                     canvas = null;
                 }
             }
@@ -353,11 +381,11 @@ public abstract class GameEngine extends Activity implements Runnable, SensorEve
     public void onResume()
     {
         super.onResume();
-        mainLoopThread = new Thread(this); //create the thread
-        mainLoopThread.start(); // and start it
+        mainLoopThread = new Thread(this);                                                          //create the thread
+        mainLoopThread.start();                                                                     // and start it
         synchronized (stateChanges)
         {
-            stateChanges.add(stateChanges.size(), State.Resumed); //first free posion in the arraylist
+            stateChanges.add(stateChanges.size(), State.Resumed);                                   //first free posion in the arraylist
             Log.d("GameEngine", "state Resumed added");
 
             SensorManager manager = ((SensorManager) getSystemService(Context.SENSOR_SERVICE));
